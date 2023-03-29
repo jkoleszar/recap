@@ -1,6 +1,11 @@
 use core::mem::MaybeUninit;
 use fixed_slice_vec::FixedSliceVec;
 
+#[derive(Debug, PartialEq)]
+pub enum Token {
+    Any,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum MemoryCell {}
 
@@ -20,4 +25,3 @@ impl<'a> Machine<'a> {
         }
     }
 }
-
