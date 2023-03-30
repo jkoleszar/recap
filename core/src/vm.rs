@@ -2,8 +2,8 @@ use core::mem::MaybeUninit;
 use fixed_slice_vec::FixedSliceVec;
 
 #[derive(Debug, PartialEq)]
-pub enum Token {
-    Any,
+pub enum Token<T> {
+    Word(T),
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -9,7 +9,7 @@ use rustyline::validate::MatchingBracketValidator;
 use rustyline::{Cmd, CompletionType, Config, EditMode, Editor, KeyEvent};
 use rustyline::{Completer, Helper, Hinter, Validator};
 
-use recap::vm;
+use recap::{human, vm};
 
 #[derive(Helper, Completer, Hinter, Validator)]
 struct MyHelper {
@@ -83,8 +83,11 @@ fn main() -> rustyline::Result<()> {
         let readline = rl.readline(&p);
         match readline {
             Ok(line) => {
+                use nom::error::VerboseError;
                 rl.add_history_entry(line.as_str())?;
-                println!("Line: {line}");
+                for token in human::tokenize::<VerboseError<&str>>(line.as_str()) {
+                    println!("{token:?}");
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Interrupted");
