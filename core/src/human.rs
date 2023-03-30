@@ -1,19 +1,20 @@
 use core::marker::PhantomData;
 
+use crate::vm::Token;
 use nom::error::{ErrorKind, ParseError};
 use nom::IResult;
 
-use crate::vm::Token;
+type Span<'a> = nom_locate::LocatedSpan<&'a str>;
 
 /// Consumes a slash-slash-comment-eol, transforming it into the empty string.
-fn eol_comment<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
+fn eol_comment<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, Span<'a>, E> {
     use nom::bytes::complete::{is_not, tag};
     use nom::sequence::preceded;
     preceded(tag("//"), is_not("\n\r"))(i)
 }
 
 /// Matches whitespace or eol comments across multiple lines.
-fn ws_or_eol<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, (), E> {
+fn ws_or_eol<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, (), E> {
     use nom::branch::alt;
     use nom::character::complete::multispace1;
     use nom::multi::fold_many0;
@@ -21,39 +22,41 @@ fn ws_or_eol<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, (), E> 
 }
 
 /// Consumes leading and trailing whitespace and comments, returning the output of `inner`.
-fn ws<'a, F, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+fn ws<'a, F, O, E: ParseError<Span<'a>>>(
+    inner: F,
+) -> impl FnMut(Span<'a>) -> IResult<Span<'a>, O, E>
 where
-    F: FnMut(&'a str) -> IResult<&'a str, O, E>,
+    F: FnMut(Span<'a>) -> IResult<Span<'a>, O, E>,
 {
     use nom::sequence::delimited;
     delimited(ws_or_eol, inner, ws_or_eol)
 }
 
-fn word<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Token<&'a str>, E> {
+fn word<'a, E: ParseError<Span<'a>>>(input: Span<'a>) -> IResult<Span<'a>, Token<Span<'a>>, E> {
     use nom::character::complete::alpha1;
     let (rem, all) = alpha1(input)?;
     Ok((rem, Token::Word(all)))
 }
 
-fn token<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Token<&'a str>, E> {
+fn token<'a, E: ParseError<Span<'a>>>(input: Span<'a>) -> IResult<Span<'a>, Token<Span<'a>>, E> {
     use nom::branch::alt;
     alt((word,))(input)
 }
 
 pub struct Tokenizer<'a, E> {
-    input: &'a str,
+    input: Span<'a>,
     done: bool,
     _mark: PhantomData<E>,
 }
-pub fn tokenize<'a, E: ParseError<&'a str>>(input: &'a str) -> Tokenizer<'a, E> {
+pub fn tokenize<'a, E: ParseError<Span<'a>>>(input: Span<'a>) -> Tokenizer<'a, E> {
     Tokenizer {
         input,
         done: false,
         _mark: PhantomData,
     }
 }
-impl<'a, E: ParseError<&'a str>> Iterator for Tokenizer<'a, E> {
-    type Item = Result<Token<&'a str>, E>;
+impl<'a, E: ParseError<Span<'a>>> Iterator for Tokenizer<'a, E> {
+    type Item = Result<Token<Span<'a>>, E>;
     fn next(&mut self) -> Option<Self::Item> {
         use nom::Err::*;
         if self.done {

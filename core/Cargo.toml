@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 fixed-slice-vec = "0.10.0"
 nom = { version = "7.1.3", default-features = false }
+nom_locate = { version = "4.1.0", default-features = false }
